@@ -4,18 +4,79 @@ metadata:
   name: cosmotech-argocd-orders
   namespace: orders-api
 rules:
-  - apiGroups: [apps]
-    resources: [deployments]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [apps]
-    resources: [replicasets]
-    verbs: [get, list, watch]
-  - apiGroups: ['']
-    resources: [configmaps, services]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: ['']
-    resources: [pods, events, endpoints]
-    verbs: [get, list, watch]
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - events
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - pods/log
+  verbs:
+  - get
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -23,9 +84,103 @@ metadata:
   name: cosmotech-argocd-orders
   namespace: orders-api
 subjects:
-  - kind: Group
-    name: cosmotech-argocd-orders
-    apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: cosmotech-argocd-orders
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: cosmotech-argocd-orders
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cosmotech-argocd-orders
+  namespace: orders-worker
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - events
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - pods/log
+  verbs:
+  - get
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cosmotech-argocd-orders
+  namespace: orders-worker
+subjects:
+- kind: Group
+  name: cosmotech-argocd-orders
+  apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: Role
   name: cosmotech-argocd-orders
