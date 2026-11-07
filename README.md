@@ -25,3 +25,9 @@ Para desfazer as permissões adicionais, primeiro suspenda a sincronização do 
 ## Origem
 
 Extraído de [aws-serverless-lab](https://github.com/rlcosmo/aws-serverless-lab) no commit `6f3e67f9e93d626393b23b6884b031767a63fea0`, preservando o histórico. Os arquivos anteriores são apenas registros da migração; a extração não recriou infraestrutura.
+
+## Lab V2 — manutenção de observabilidade
+
+`ops/kubernetes/lab-v2-observability-reader.yaml` corrige o Forbidden da manutenção somente para leitura de ConfigMap, PodMonitor, ServiceMonitor e PrometheusRule no namespace observability. Não altera o ClusterRole existente, não lê Secrets e não concede create/patch/update/delete ou administração RBAC.
+
+Instalar apenas por executor com autorização RBAC nesse namespace, com server dry-run antes do apply dos dois objetos revisados. A role de manutenção não pode instalar a própria permissão: um Forbidden não autoriza escalada. Validar com a sessão temporária dessa role: `kubectl auth can-i list prometheusrules.monitoring.coreos.com -n observability` deve permitir, e `kubectl auth can-i get secrets -n observability` deve continuar negado. CI estático não comprova instalação.
