@@ -1,6 +1,12 @@
 name: Lab V2 scoped RBAC delivery
+run-name: "Lab V2 RBAC · ${{ inputs.request_id || github.run_id }}"
 on:
   workflow_dispatch:
+    inputs:
+      request_id:
+        type: string
+        required: false
+        default: ""
 permissions:
   contents: read
 concurrency:
@@ -31,6 +37,7 @@ jobs:
           role-to-assume: ${{ vars.LAB_V2_RBAC_BOOTSTRAP_ROLE_ARN }}
           aws-region: us-east-1
           retry-max-attempts: 2
+          role-duration-seconds: 900
           role-session-name: LabV2RBAC-${{ github.run_id }}
       - name: Use only the existing EKS API and temporary role
         run: aws eks update-kubeconfig --region us-east-1 --name aws-eks-istio-lab-dev > /dev/null
@@ -38,6 +45,10 @@ jobs:
         run: |
           kubectl --request-timeout=20s auth can-i create roles.rbac.authorization.k8s.io -n observability --quiet
           kubectl --request-timeout=20s auth can-i create rolebindings.rbac.authorization.k8s.io -n observability --quiet
+      - name: Confirm no Secrets or cluster-wide authority
+        run: |
+          if kubectl --request-timeout=20s auth can-i get secrets -n observability --quiet; then exit 1; fi
+          if kubectl --request-timeout=20s auth can-i create clusterroles.rbac.authorization.k8s.io --quiet; then exit 1; fi
       - name: Server-validate and reconcile only the two reviewed objects
         run: |
           kubectl --request-timeout=20s apply --dry-run=server -f ops/kubernetes/lab-v2-observability-reader.yaml

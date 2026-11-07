@@ -19,3 +19,20 @@ if workflow.exists():
     delivery = yaml.safe_load(workflow.read_text())
     for job in delivery['jobs'].values():
         assert all('runner.' not in str(value) for value in job.get('env', {}).values()), 'runner context is not available in jobs.env'
+
+import json
+bootstrap = json.loads(Path('ops/kubernetes/lab-v2-bootstrap-authority.json').read_text())['items']
+assert len(bootstrap) == 2 and {r['kind'] for r in bootstrap} == {'Role', 'RoleBinding'}
+assert all(r['metadata']['namespace'] == 'observability' for r in bootstrap)
+role = next(r for r in bootstrap if r['kind'] == 'Role')
+for rule in role['rules']:
+    assert '*' not in rule['apiGroups'] + rule['resources'] + rule['verbs']
+    assert 'secrets' not in rule['resources']
+    if rule['apiGroups'] != ['rbac.authorization.k8s.io']:
+        assert set(rule['verbs']) <= {'get', 'list', 'watch'}
+    else:
+        assert set(rule['resources']) == {'roles', 'rolebindings'}
+        assert set(rule['verbs']) <= {'get', 'list', 'watch', 'create', 'patch', 'update'}
+binding = next(r for r in bootstrap if r['kind'] == 'RoleBinding')
+assert binding['roleRef']['kind'] == 'Role' and binding['roleRef']['name'] == role['metadata']['name']
+assert binding['subjects'] == [{'kind': 'Group', 'name': 'cosmotech-lab-v2-rbac-bootstrap', 'apiGroup': 'rbac.authorization.k8s.io'}]
