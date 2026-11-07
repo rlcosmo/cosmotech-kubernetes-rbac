@@ -13,3 +13,9 @@ assert binding['roleRef']['kind'] == 'Role' and binding['roleRef']['name'] == ro
 assert {(group, resource) for rule in role['rules'] for group in rule['apiGroups'] for resource in rule['resources']} == {('', 'configmaps'), ('monitoring.coreos.com', 'podmonitors'), ('monitoring.coreos.com', 'servicemonitors'), ('monitoring.coreos.com', 'prometheusrules')}
 assert all(set(rule['verbs']) == {'get', 'list', 'watch'} for rule in role['rules'])
 print('Lab V2 maintenance: namespaced read-only scope validated; no Secrets or write permissions')
+
+workflow = Path('.github/workflows/lab-v2-rbac.yml')
+if workflow.exists():
+    delivery = yaml.safe_load(workflow.read_text())
+    for job in delivery['jobs'].values():
+        assert all('runner.' not in str(value) for value in job.get('env', {}).values()), 'runner context is not available in jobs.env'

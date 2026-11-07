@@ -16,10 +16,11 @@ jobs:
       id-token: write
     env:
       RBAC_ROLE: ${{ vars.LAB_V2_RBAC_BOOTSTRAP_ROLE_ARN }}
-      KUBECONFIG: ${{ runner.temp }}/lab-v2-kubeconfig
     steps:
       - name: Require a pre-authorized namespace RBAC identity
-        run: test -n "$RBAC_ROLE" || { echo 'LAB_V2_RBAC_BOOTSTRAP_ROLE_ARN is required; maintenance cannot grant its own permissions'; exit 1; }
+        run: |
+          echo "KUBECONFIG=$RUNNER_TEMP/lab-v2-kubeconfig" >> "$GITHUB_ENV"
+          test -n "$RBAC_ROLE" || { echo 'LAB_V2_RBAC_BOOTSTRAP_ROLE_ARN is required; maintenance cannot grant its own permissions'; exit 1; }
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
@@ -45,4 +46,5 @@ jobs:
           kubectl --request-timeout=20s -n observability get rolebinding cosmotech-lab-v2-observability-reader
       - name: Remove temporary client configuration
         if: always()
-        run: rm -f -- "$KUBECONFIG"
+        run: |
+          if [ -n "${KUBECONFIG:-}" ]; then rm -f -- "$KUBECONFIG"; fi
