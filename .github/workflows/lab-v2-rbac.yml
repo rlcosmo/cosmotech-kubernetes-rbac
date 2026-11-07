@@ -1,0 +1,48 @@
+name: Lab V2 scoped RBAC delivery
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lab-v2-observability-rbac
+  cancel-in-progress: false
+jobs:
+  deliver:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RBAC_ROLE: ${{ vars.LAB_V2_RBAC_BOOTSTRAP_ROLE_ARN }}
+      KUBECONFIG: ${{ runner.temp }}/lab-v2-kubeconfig
+    steps:
+      - name: Require a pre-authorized namespace RBAC identity
+        run: test -n "$RBAC_ROLE" || { echo 'LAB_V2_RBAC_BOOTSTRAP_ROLE_ARN is required; maintenance cannot grant its own permissions'; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install PyYAML==6.0.3
+      - run: python scripts/validate_lab_v2_rbac.py
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.LAB_V2_RBAC_BOOTSTRAP_ROLE_ARN }}
+          aws-region: us-east-1
+          retry-max-attempts: 2
+          role-session-name: LabV2RBAC-${{ github.run_id }}
+      - name: Use only the existing EKS API and temporary role
+        run: aws eks update-kubeconfig --region us-east-1 --name aws-eks-istio-lab-dev > /dev/null
+      - name: Check namespace authority without privilege escalation
+        run: |
+          kubectl --request-timeout=20s auth can-i create roles.rbac.authorization.k8s.io -n observability --quiet
+          kubectl --request-timeout=20s auth can-i create rolebindings.rbac.authorization.k8s.io -n observability --quiet
+      - name: Server-validate and reconcile only the two reviewed objects
+        run: |
+          kubectl --request-timeout=20s apply --dry-run=server -f ops/kubernetes/lab-v2-observability-reader.yaml
+          kubectl --request-timeout=20s apply -f ops/kubernetes/lab-v2-observability-reader.yaml
+          kubectl --request-timeout=20s -n observability get role cosmotech-lab-v2-observability-reader
+          kubectl --request-timeout=20s -n observability get rolebinding cosmotech-lab-v2-observability-reader
+      - name: Remove temporary client configuration
+        if: always()
+        run: rm -f -- "$KUBECONFIG"
