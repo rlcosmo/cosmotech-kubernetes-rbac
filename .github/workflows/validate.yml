@@ -12,3 +12,4 @@ jobs:
       - run: python -m pip install PyYAML==6.0.3
       - run: python scripts/validate_orders_rbac.py
       - run: python scripts/validate_lab_v2_rbac.py
+      - run: python scripts/validate_observability_v2_rbac.py
